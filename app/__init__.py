@@ -19,15 +19,20 @@ def create_app():
     migrate.init_app(app, db)
         
     
-    # Blueprints
+    # Models
     from app.models.role import Role
     from app.models.user import User
     from app.models.user_role import UserRole
+    from app.models.user_token import UserToken
+    
+    # Blueprints
+    from app.routes.user_management_route import auth_bp
+    app.register_blueprint(blueprint=auth_bp, url_prefix='/auth')
     
     
     # Dependency Injection
-    # from app.dependencies.DI import config
-    # FlaskInjector(app=app, modules=[config])
+    from app.dependencies.DI import config
+    FlaskInjector(app=app, modules=[config])
     
     
     return app

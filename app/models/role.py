@@ -13,11 +13,10 @@ class Role(db.Model):
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False, unique=True)
     
-    
     # Relations
     users = relationship('User', secondary='user_roles', back_populates='roles')
     
-    
+
     # Representation
     def __repr__(self):
         return f"<Role(id={self.id}, name='{self.name}')>"

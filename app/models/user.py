@@ -1,5 +1,5 @@
 from app import db
-from sqlalchemy import Column, String, Integer, Boolean, CheckConstraint
+from sqlalchemy import Column, String, Integer, Boolean, CheckConstraint, DateTime, func
 from sqlalchemy.orm import relationship, validates 
 from sqlalchemy import MetaData
 
@@ -10,16 +10,20 @@ class User(db.Model):
     __table_args__ = (
         metadata,
         CheckConstraint(
-            "first_name GLOB '[A-Za-z]*'",
+            "title REGEXP '^[a-zA-Z]+$'",
+            name='title_check'
+        ),
+        CheckConstraint(
+            "first_name REGEXP '^[a-zA-Z]+$'",
             name='first_name_check'
         ),
         CheckConstraint(
-            "last_name GLOB '[A-Za-z]*'",
+            "last_name REGEXP '^[a-zA-Z]+$'",
             name='last_name_check'
         ),
         CheckConstraint(
-            "username GLOB '^[a-zA-Z][a-zA-Z0-9_]*$'",
-            name='username_check'
+            "email REGEXP '^[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$'",
+            name='email_check'
         )
     )
 
@@ -32,12 +36,14 @@ class User(db.Model):
     username = Column(String(50), nullable=False, unique=True)
     email = Column(String(100), nullable=False, unique=True)
     password_hash = Column(String(), nullable=False)
+    registered_on = Column(DateTime, nullable=False, default=func.now())
     is_2FA_enabled = Column(Boolean, nullable=False, default=False)
+    is_deleted_user = Column(Boolean, nullable=False, default=False)
     
 
     # Relationships
     roles = relationship('Role', secondary='user_roles', back_populates='users')
-
+    tokens = relationship('UserToken', back_populates='user', cascade='all, delete-orphan')
 
     # Representation
     def __repr__(self):
