@@ -1,0 +1,7 @@
+{
+    "DEBUG": true,
+    "SECRET_KEY": "my_flask_application_secret_key",
+    "SQLALCHEMY_DATABASE_URI": "sqlite:///database.sqlite3",
+    "SQLALCHEMY_TRACK_MODIFICATIONS": false,
+    "JWT_SECRET_KEY": "@#!__this_is_youssef_adel_jwt_training_secret_key__!#@"
+}
