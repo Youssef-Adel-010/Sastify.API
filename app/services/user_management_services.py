@@ -1,11 +1,10 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import abort, jsonify
 from injector import inject
+from app.dtos.login_dto import LoginDto
 from app.dtos.register_dto import RegisterDto
 from app.models.user import User
 from app.repositories.user_management_repository import UserManagementRepository
-from marshmallow import validate 
-from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class UserManagementServices:
@@ -13,12 +12,14 @@ class UserManagementServices:
     def __init__(
         self,
         register_dto: RegisterDto,
-        user_management_repository: UserManagementRepository,
+        login_dto: LoginDto,
+        repository: UserManagementRepository,
         users_table: User,
         db: SQLAlchemy):
         
-        self.user_management_repository = user_management_repository
+        self.repository = repository
         self.register_dto = register_dto
+        self.login_dto = login_dto
         self.users_table = users_table
         self.db = db
         
@@ -27,16 +28,25 @@ class UserManagementServices:
         errors = self.register_dto.validate(data)
         
         if errors:
-            return jsonify({'errors': errors}) 
+            abort(400, description={'ValidationErrors': errors})
+            return
         
         user = self.register_dto.load(data)
         
-        self.user_management_repository.register(user)
+        self.repository.register(user)
+        
+    def login(self, data):
+        errors = self.login_dto.validate(data)
+        
+        if errors:
+            abort(401, description='Invalid credentials')
+            return
+        
+        user = self.login_dto.load(data)
+        self.repository.login(user)
+        
 
-        return 0
-
-
-    def verify_password(self, real_password, entered_password):
-        return check_password_hash(real_password, entered_password)
+    # def verify_password(self, real_password, entered_password):
+    #     return check_password_hash(real_password, entered_password)
     
     

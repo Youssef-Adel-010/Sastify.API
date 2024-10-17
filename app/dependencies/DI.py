@@ -1,5 +1,6 @@
 from flask import request
 from flask_sqlalchemy import SQLAlchemy
+from app.dtos.login_dto import LoginDto
 from app.responses.api_response import ApiResponse
 from app.models.user import User
 from app.repositories.user_management_repository import UserManagementRepository 
@@ -17,5 +18,5 @@ def config(binder: Binder):
     binder.bind(UserManagementServices, to=UserManagementServices, scope=request)
     binder.bind(RegisterDto, to=RegisterDto)
     binder.bind(ApiResponse, to=ApiResponse)
-    
+    binder.bind(LoginDto, to=LoginDto)
     

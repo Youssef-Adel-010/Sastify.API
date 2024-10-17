@@ -1,29 +1,32 @@
 import json
 from flask import Flask
 from flask_injector import FlaskInjector
+from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 
 db = SQLAlchemy()
 migrate = Migrate()
+jwt = JWTManager()
 
 def create_app():
     app = Flask(__name__)
     
+    #Error handlers
+    from app.errors.error_handlers import register_error_handlers
+    register_error_handlers(app)
+    
+    
     # Configurations
     app.config.from_file(filename='config.json', load=json.load)
     
-    
-    # Extensions
-    db.init_app(app)
-    migrate.init_app(app, db)
-        
     
     # Models
     from app.models.role import Role
     from app.models.user import User
     from app.models.user_role import UserRole
     from app.models.user_token import UserToken
+    
     
     # Blueprints
     from app.routes.user_management_route import auth_bp
@@ -34,5 +37,10 @@ def create_app():
     from app.dependencies.DI import config
     FlaskInjector(app=app, modules=[config])
     
+    
+    # Extensions
+    db.init_app(app)
+    migrate.init_app(app, db)
+    jwt.init_app(app)
     
     return app

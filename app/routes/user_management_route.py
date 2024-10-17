@@ -11,15 +11,27 @@ auth_bp = Blueprint('authentication', __name__)
 def register(services: UserManagementServices, response: ApiResponse):
     data = request.json
     
-    
-    if services.register(data) != 0:
-        return services.register(data)
-    
-     
+    services.register(data)
+        
     response.set_values(
         status_code=201,
         success=True,
-        message='The user registered successfully'
+        message='The user registered successfully.'
+    )
+    
+    return response.to_json(), response.status_code
+
+@inject
+@auth_bp.post('/login')
+def login(services: UserManagementServices, response: ApiResponse):
+    data = request.json
+
+    services.login(data)
+
+    response.set_values(
+        status_code=200,
+        success=True,
+        message='The account logged in successfully.'
     )
     
     return response.to_json(), response.status_code

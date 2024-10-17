@@ -1,6 +1,7 @@
 from marshmallow import Schema, fields, post_load, validates, ValidationError
 from werkzeug.security import generate_password_hash
 import re
+from app import db
 
 from app.models.user import User
 
@@ -38,7 +39,7 @@ class RegisterDto(Schema):
         
         if not re.match('^[a-zA-Z]+$', value):
             raise ValidationError("First name can only contain english letters.") 
-
+        
 
 
     @validates('last_name')
@@ -59,6 +60,9 @@ class RegisterDto(Schema):
         if not re.match('^[a-zA-Z0-9_-]+$', value):
             raise ValidationError("Username must contain english letters, numbers and special characters (-, _).")             
 
+        user = db.session.query(User).filter_by(username=value).one_or_none()
+        if user:        
+            raise ValidationError("Username is already used.")             
 
 
     @validates('password')
@@ -82,3 +86,7 @@ class RegisterDto(Schema):
         
         if not re.match(pattern, value):
             raise ValidationError(message)
+        
+        user = db.session.query(User).filter_by(email=value).one_or_none()
+        if user:        
+            raise ValidationError("Email is already exist.")
