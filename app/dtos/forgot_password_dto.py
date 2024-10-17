@@ -19,8 +19,3 @@ class ForgotPasswordDto(Schema):
         
         if not re.match(pattern, value):
             raise ValidationError('Invalid email')
-        
-        email = db.session.query(User).filter_by(email=value).one_or_none()
-        
-        if not email:
-            raise ValidationError('Invalid email')

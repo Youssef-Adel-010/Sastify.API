@@ -1,7 +1,13 @@
 {
     "DEBUG": true,
-    "SECRET_KEY": "my_flask_application_secret_key",
     "SQLALCHEMY_DATABASE_URI": "sqlite:///Sastify.sqlite3",
     "SQLALCHEMY_TRACK_MODIFICATIONS": false,
-    "JWT_SECRET_KEY": "@#!__this_is_youssef_adel_jwt_training_secret_key__!#@"
-}
+    "SECRET_KEY": "k4saV3abJgTrlqLcFdNNUI3PSlUW1L9OphD5W2ZJ7oPQ9gn1FhuNL6jcgJYjHnxBSjcnNBves4ZGQirkNvwvMQzClyGayt7z4bCMaVRJ7MomjvoKWRoytYI8apwmxON3",
+    "JWT_SECRET_KEY": "tnitv0hjvtcFAo1F3KwWvxuphHAqfCEtvcwhiukqxCb3e6i4cMurgTWbZ8WSLtj90E6cKKa9MP5B6RDtfgtdVX37gRXeUBkhuRXHDi2oV5BfBm9qtv7Pvh540s17lQfx",
+    "EMAIL": {
+        "SENDER": "yossefadel260@gmail.com",
+        "SMTP_SERVER": "smtp.gmail.com",
+        "APP_PASSWORD": "tdwqdekvtlclycwp",
+        "PORT": 587
+      }
+}   

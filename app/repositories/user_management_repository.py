@@ -54,11 +54,15 @@ class UserManagementRepository:
         user_in_db.tokens.append(token)
 
         self.db.session.commit()
-        
-        
+     
         
     def get_user_by_username(self, username):
         user = self.db.session.query(User).filter_by(username=username).one_or_none()
+        return user
+    
+        
+    def get_user_by_email(self, email):
+        user = self.db.session.query(User).filter_by(email=email).one_or_none()
         return user
     
     

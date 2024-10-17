@@ -4,7 +4,7 @@ from injector import inject
 from app.responses.api_response import ApiResponse
 from app.services.user_management_services import UserManagementServices
 
-auth_bp = Blueprint('authentication', __name__)
+auth_bp = Blueprint('auth', __name__)
 
 @inject
 @auth_bp.post('/register')
@@ -35,3 +35,27 @@ def login(services: UserManagementServices, response: ApiResponse):
     )
     
     return response.to_json(), response.status_code
+
+
+@inject
+@auth_bp.post('/forgot_password')
+def forgot_password(services: UserManagementServices, response: ApiResponse):
+    data = request.json
+    email = data.get('email')
+    
+    services.forgot_password(email)
+    response.set_values(
+        status_code=200,
+        success=True,
+        message='Password reset email has been sent.'
+    )
+    
+    return response.to_json(), response.status_code
+
+
+@inject
+@auth_bp.post('/reset_password/<token>')
+def reset_password(token, services: UserManagementServices, response: ApiResponse):
+
+    return jsonify({'h':'h'})
+
