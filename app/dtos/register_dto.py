@@ -1,9 +1,8 @@
+from app import db
+from app.models.user import User
 from marshmallow import Schema, fields, post_load, validates, ValidationError
 from werkzeug.security import generate_password_hash
 import re
-from app import db
-
-from app.models.user import User
 
 class RegisterDto(Schema):
     title = fields.String(required=True)
@@ -63,6 +62,7 @@ class RegisterDto(Schema):
         user = db.session.query(User).filter_by(username=value).one_or_none()
         if user:        
             raise ValidationError("Username is already used.")             
+
 
 
     @validates('password')

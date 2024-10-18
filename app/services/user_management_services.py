@@ -1,3 +1,4 @@
+import pyotp
 from app.dtos.login_dto import LoginDto
 from app.dtos.register_dto import RegisterDto
 from app.models.user import User
@@ -6,7 +7,7 @@ from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import abort, url_for
-from flask_jwt_extended import create_access_token, decode_token
+from flask_jwt_extended import create_access_token, decode_token, current_user
 from flask_sqlalchemy import SQLAlchemy
 from injector import inject
 from pathlib import Path
@@ -30,7 +31,6 @@ class UserManagementServices:
         self.db = db
         
 
-
     def register(self, data):
         errors = self.register_dto.validate(data)
         
@@ -43,7 +43,6 @@ class UserManagementServices:
         self.repository.register(user)
         
 
-
     def login(self, data):
         errors = self.login_dto.validate(data)
         
@@ -52,8 +51,11 @@ class UserManagementServices:
             return
         
         user = self.login_dto.load(data)
-        self.repository.login(user)
-        
+        log = self.repository.login(user)
+        print(log)
+        if log:
+            self.totp = self.handle_2FA_Send_OTP_Email(log)
+            return '2FA'
 
 
     def forgot_password(self, email):
@@ -65,9 +67,9 @@ class UserManagementServices:
         
         reset_link = url_for('auth.reset_password', token=reset_token, _external=True)
         
-        email = self.create_email(email=user.email, reset_url=reset_link)
+        email_content = self.create_email(email_type='reset_password', additional_data={'reset_url': reset_link})
         
-        self.send_email(email)
+        self.send_email(email_content=email_content, receiver_email=user.email)
 
 
     def reset_password(self, reset_token, new_password):
@@ -85,55 +87,83 @@ class UserManagementServices:
         self.repository.reset_password(user=user, new_password=new_password)
 
 
+    def enable_2FA(self):
+        user = current_user
+        self.repository.enable_2FA(user)        
 
-    def create_email(self, email, reset_url):
+
+    def send_email(self, receiver_email, email_content):
         configs = f'{Path(__file__).resolve().parent.parent}\config.json'
         with open(configs, 'r') as config_file:
             config = json.load(config_file)
-        html = f"""
-        <html>
-            <body>
-                <a href="{reset_url}" style="background-color:#800020 ; color: white; padding: 10px 20px; text-decoration: none; border-radius: 100px;">
-                    Reset Password
-                </a>
-            </body>
-        </html>
-        """  
+        
         smtp_server = config['EMAIL']['SMTP_SERVER']
         port = config['EMAIL']['PORT']
         app_password = config['EMAIL']['APP_PASSWORD']
         sender_email = config['EMAIL']['SENDER']
-        receiver_email = email
-        subject = 'SASTify password reset'
+
         
         msg = MIMEMultipart()
         msg['From'] = sender_email
         msg['To'] = receiver_email
-        msg['Subject'] = subject
+        msg['Subject'] = email_content['subject']
 
-        msg.attach(MIMEText(html, 'html'))
-        return {
-            'smtp_server': smtp_server,
-            'subject': subject,
-            'receiver_email': receiver_email,
-            'sender_email': sender_email,
-            'port': port,
-            'app_password': app_password,
-            'html': html,
-            'msg': msg
-        }
-
-
-
-    def send_email(self, email):
+        msg.attach(MIMEText(email_content['html'], 'html'))
         try:
-            server = smtplib.SMTP(email['smtp_server'], email['port'])
+            server = smtplib.SMTP(smtp_server, port)
             server.starttls()
-            server.login(email['sender_email'], email['app_password'])
-            server.sendmail(email['sender_email'], email['receiver_email'], email['msg'].as_string())
+            server.login(sender_email, app_password)
+            server.sendmail(sender_email, receiver_email, msg.as_string())
         except Exception as e:
             abort(500, description=f'{e}')
         finally:
             server.quit()
 
+
+    def handle_2FA_Send_OTP_Email(self, user):
+        totp = pyotp.TOTP(user.secret_key, interval=500)
+        otp = totp.now()
+        email_content = self.create_email(email_type='2FA_OTP', additional_data={'OTP': otp})
+        self.send_email(receiver_email=user.email, email_content=email_content)
+        return totp
         
+
+    def handle_2FA_OTP_login(self, username, entered_otp):
+        user = self.repository.get_user_by_username(username)
+        totp = pyotp.TOTP(user.secret_key, interval=500)
+        print(totp.now())
+        if not totp.verify(entered_otp):
+            abort(401, 'Invalid token')
+        user = self.repository.get_user_by_username(username)
+        self.repository.login_with_otp(user)
+        
+        
+    def create_email(self, email_type, additional_data=None):
+        html = ''
+        subject = ''
+        if email_type == 'reset_password':
+            subject = 'SASTify password reset'
+            html = f"""
+            <html>
+                <body>
+                    <a href="{additional_data['reset_url']}" style="background-color:#800020 ; color: white; padding: 10px 20px; text-decoration: none; border-radius: 100px;">
+                        Reset Password
+                    </a>
+                </body>
+            </html>
+            """
+        elif email_type == '2FA_OTP':
+            subject = 'SASTify login OTP'
+            html = f"""
+            <html>
+                <body>
+                <h1>Here is your OTP<h1>
+                <h3>{additional_data['OTP']}<h3>
+                <h5>Don't share it with anyone<h5>
+                </body>
+            </html>
+            """
+        return {
+            'subject': subject,
+            'html': html
+        }

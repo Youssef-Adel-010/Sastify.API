@@ -3,50 +3,6 @@ from flask_injector import inject
 
 def register_error_handlers(app):
     
-    # JWT error handlers
-    # using manual object creation (special case)
-
-    # @jwt.expired_token_loader
-    # def expired_token_handler(jwt_header, jwt_data):
-    #     response = ApiResponse()
-    #     response.set_values(
-    #         status_code = 401, 
-    #         error = 'expired_token',
-    #         message = 'The token has expired',
-    #         success = False,
-    #     )
-        
-    #     return response.to_json(), 401
-
-    # @jwt.invalid_token_loader
-    # def invalid_token_handler(error):
-    #     response = ApiResponse()
-    #     response.set_values(
-    #         status_code = 401,
-    #         error = 'invalid_token',
-    #         message = 'Signature verification failed',
-    #         success = False,
-    #     )
-        
-    #     return response.to_json(), 401
-    
-
-    # @jwt.unauthorized_loader
-    # def unauthorized_loader_handler(error, response: ApiResponse):
-    #     # response = ApiResponse()
-    #     response.set_values(
-    #         status_code = 401,
-    #         error = 'unauthorized_user',
-    #         message = 'Request doesn\'t contain a valid token',
-    #         success = False,
-    #     )
-        
-    #     return response.to_json(), 401
-    
-
-
-    # Status codes error handlers
-    
     @inject
     @app.errorhandler(404)
     def handle_404_not_found(e, response: ApiResponse):

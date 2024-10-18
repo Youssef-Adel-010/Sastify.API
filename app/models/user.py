@@ -2,6 +2,7 @@ from app import db
 from sqlalchemy import Column, String, Integer, Boolean, CheckConstraint, DateTime, func
 from sqlalchemy.orm import relationship, validates 
 from sqlalchemy import MetaData
+import pyotp
 
 metadata = MetaData(schema='security')
 
@@ -39,6 +40,7 @@ class User(db.Model):
     registered_on = Column(DateTime, nullable=False, default=func.now())
     is_2FA_enabled = Column(Boolean, nullable=False, default=False)
     is_deleted_user = Column(Boolean, nullable=False, default=False)
+    secret_key = Column(String(), nullable=False, default=pyotp.random_base32())
     
 
     # Relationships
