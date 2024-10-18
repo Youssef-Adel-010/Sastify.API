@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from flask import Flask
 from flask_injector import FlaskInjector
 from flask_jwt_extended import JWTManager
@@ -18,7 +19,8 @@ def create_app():
     
     
     # Configurations
-    app.config.from_file(filename='config.json', load=json.load)
+    config = f'{Path(__file__).resolve().parent}\config.json'
+    app.config.from_file(config, load=json.load)
     
     
     # Models

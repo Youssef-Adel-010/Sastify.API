@@ -1,16 +1,17 @@
-from datetime import timedelta
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from flask_jwt_extended import create_access_token
-from flask_sqlalchemy import SQLAlchemy
-from flask import abort, url_for
-from injector import inject
 from app.dtos.login_dto import LoginDto
 from app.dtos.register_dto import RegisterDto
 from app.models.user import User
 from app.repositories.user_management_repository import UserManagementRepository
-import smtplib
+from datetime import timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from flask import abort, url_for
+from flask_jwt_extended import create_access_token, decode_token
+from flask_sqlalchemy import SQLAlchemy
+from injector import inject
+from pathlib import Path
 import json
+import smtplib
 
 class UserManagementServices:
     @inject
@@ -60,17 +61,34 @@ class UserManagementServices:
         if not user:
             abort(404, description='Invalid email')
 
-        reset_token = create_access_token(identity=user.username, expires_delta=timedelta(hours=1))
+        reset_token = create_access_token(identity=user.username, expires_delta=timedelta(hours=1), fresh=True)
         
         reset_link = url_for('auth.reset_password', token=reset_token, _external=True)
         
         email = self.create_email(email=user.email, reset_url=reset_link)
+        
         self.send_email(email)
 
-            
+
+    def reset_password(self, reset_token, new_password):
+        try:
+            decoded_token = decode_token(reset_token)
+            user_identity = decoded_token['sub']
+        except Exception as ex:
+            abort(400, description='Invalid or expired token')
+
+        user = self.db.session.query(User).filter_by(username=user_identity).one_or_none()       
+        
+        if not user:
+            abort(400, description='User not found')
+
+        self.repository.reset_password(user=user, new_password=new_password)
+
+
 
     def create_email(self, email, reset_url):
-        with open(r'C:\Main\000\Projects\Graduation_Project\Sastify\app\config.json', 'r') as config_file:
+        configs = f'{Path(__file__).resolve().parent.parent}\config.json'
+        with open(configs, 'r') as config_file:
             config = json.load(config_file)
         html = f"""
         <html>
@@ -104,8 +122,8 @@ class UserManagementServices:
             'html': html,
             'msg': msg
         }
-        
-        
+
+
 
     def send_email(self, email):
         try:
@@ -117,3 +135,5 @@ class UserManagementServices:
             abort(500, description=f'{e}')
         finally:
             server.quit()
+
+        

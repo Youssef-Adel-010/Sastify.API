@@ -56,6 +56,8 @@ def forgot_password(services: UserManagementServices, response: ApiResponse):
 @inject
 @auth_bp.post('/reset_password/<token>')
 def reset_password(token, services: UserManagementServices, response: ApiResponse):
-
+    new_password = request.json['password']
+    print('\n\n\n\n{new_password}\n\n\n\n')
+    services.reset_password(reset_token=token, new_password=new_password)
     return jsonify({'h':'h'})
 

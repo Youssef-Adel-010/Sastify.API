@@ -6,7 +6,7 @@ from app.dtos.register_dto import RegisterDto
 from app.models.role import Role
 from app.models.user import User
 from app.models.user_token import UserToken
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from flask_jwt_extended import create_access_token
 
 class UserManagementRepository:
@@ -54,7 +54,12 @@ class UserManagementRepository:
         user_in_db.tokens.append(token)
 
         self.db.session.commit()
-     
+    
+    
+    def reset_password(self, user: User, new_password):
+        user.password_hash = generate_password_hash(new_password)
+        self.db.session.commit() 
+
         
     def get_user_by_username(self, username):
         user = self.db.session.query(User).filter_by(username=username).one_or_none()
