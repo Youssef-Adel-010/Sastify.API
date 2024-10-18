@@ -12,7 +12,6 @@ class UserRole(db.Model):
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
     role_id = Column(Integer, ForeignKey('roles.id'), primary_key=True)
     
-    
     # Representation
     def __repr__(self):
         return f"<UserId={self.user_id} - RoleId={self.role_id}>"

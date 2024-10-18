@@ -28,7 +28,6 @@ class User(db.Model):
         )
     )
 
-    
     # Columns
     id = Column(Integer, primary_key=True)
     title = Column(String(10), nullable=False)
@@ -42,7 +41,6 @@ class User(db.Model):
     is_deleted_user = Column(Boolean, nullable=False, default=False)
     secret_key = Column(String(), nullable=False, default=pyotp.random_base32())
     
-
     # Relationships
     roles = relationship('Role', secondary='user_roles', back_populates='users')
     tokens = relationship('UserToken', back_populates='user', cascade='all, delete-orphan')

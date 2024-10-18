@@ -11,11 +11,8 @@ class ForgotPasswordDto(Schema):
     def make_object(self, data, **kwargs):
         return data['email']
 
-
     @validates('email')
     def validates_email(self, value):
-           
         pattern =  r"^[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$"
-        
         if not re.match(pattern, value):
             raise ValidationError('Invalid email')

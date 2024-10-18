@@ -10,51 +10,41 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.post('/register')
 def register(services: UserManagementServices, response: ApiResponse):
     data = request.json
-    
     services.register(data)
-        
     response.set_values(
         status_code=201,
         success=True,
         message='The user registered successfully.'
     )
-    
     return response.to_json(), response.status_code
-
 
 @inject
 @auth_bp.post('/login')
 def login(services: UserManagementServices, response: ApiResponse):
     data = request.json
-
-    if services.login(data) == '2FA':
+    token = services.login(data) 
+    if token == '2FA':
         return jsonify({'message': 'Enter the OTP in your mail box'})
-
     response.set_values(
         status_code=200,
         success=True,
-        message='The account logged in successfully.'
+        message='The account logged in successfully.',
+        data={'access_token': token}
     )
-    
     return response.to_json(), response.status_code
-
 
 @inject
 @auth_bp.post('/forgot_password')
 def forgot_password(services: UserManagementServices, response: ApiResponse):
     data = request.json
     email = data.get('email')
-    
     services.forgot_password(email)
     response.set_values(
         status_code=200,
         success=True,
         message='Password reset email has been sent.'
     )
-    
     return response.to_json(), response.status_code
-
-
 
 @inject
 @auth_bp.post('/reset_password/<token>')
@@ -68,8 +58,6 @@ def reset_password(token, services: UserManagementServices, response: ApiRespons
     )
     return response.to_json(), response.status_code
 
-
-
 @inject
 @auth_bp.post('/enable_2fa')
 @jwt_required()
@@ -82,20 +70,36 @@ def enable_2fa(services: UserManagementServices, response: ApiResponse):
     )
     return response.to_json(), response.status_code
 
-
 @inject
 @auth_bp.post('/otp_login')
 def otp_login(services: UserManagementServices, response: ApiResponse):
     data = request.json
     username = data['username']
     otp = data['otp']
-    
-    services.handle_2FA_OTP_login(entered_otp=otp, username=username)
-    
+    token = services.handle_2FA_OTP_login(entered_otp=otp, username=username)
     response.set_values(
         status_code=200,
         success=True,
-        message='The account logged in successfully.'
+        message='The account logged in successfully.',
+        data={'access_token': token}
     )
-    
     return response.to_json(), response.status_code
+
+@inject
+@auth_bp.post('/logout')
+@jwt_required()
+def logout(services: UserManagementServices, response: ApiResponse):
+    services.logout()
+    response.set_values(
+        status_code=200,
+        success=True,
+        message='The account logged out successfully.'
+    )
+    return response.to_json(), response.status_code
+
+
+
+@auth_bp.get('/test')
+@jwt_required()
+def test():
+    return jsonify({'message': 'I am authorized'})

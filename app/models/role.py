@@ -15,7 +15,6 @@ class Role(db.Model):
     
     # Relations
     users = relationship('User', secondary='user_roles', back_populates='roles')
-    
 
     # Representation
     def __repr__(self):
