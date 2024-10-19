@@ -1,8 +1,11 @@
 import pyotp
+from app.dtos.change_password import ChangePasswordDto
 from app.dtos.login_dto import LoginDto
 from app.dtos.register_dto import RegisterDto
+from app.dtos.reset_password import ResetPasswordDto
+from app.dtos.update_dto import UpdateDto
 from app.models.user import User
-from app.repositories.user_management_repository import UserManagementRepository
+from app.repositories.user_repository import UserRepository
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -13,16 +16,25 @@ from injector import inject
 from pathlib import Path
 import json
 import smtplib
+from app.schemas.user_profile_schema import UserProfileSchema
 
-class UserManagementServices:
+class UserServices:
     @inject
     def __init__(
         self,
         register_dto: RegisterDto,
         login_dto: LoginDto,
-        repository: UserManagementRepository,
+        repository: UserRepository,
         users_table: User,
+        user_profile_schema: UserProfileSchema,
+        update_dto: UpdateDto,
+        reset_password_dto: ResetPasswordDto,
+        change_password_dto: ChangePasswordDto,
         db: SQLAlchemy):
+        self.change_password_dto = change_password_dto
+        self.reset_password_dto = reset_password_dto
+        self.update_dto = update_dto
+        self.user_profile_schema = user_profile_schema
         self.repository = repository
         self.register_dto = register_dto
         self.login_dto = login_dto
@@ -49,35 +61,83 @@ class UserManagementServices:
             return '2FA'
         return log
 
+    def logout(self):
+        jti = get_jwt()['jti']
+        self.repository.logout(jti)
+        
     def forgot_password(self, email):
         user = self.repository.get_user_by_email(email)
         if not user:
             abort(404, description='Invalid email')
         reset_token = create_access_token(identity=user.username, expires_delta=timedelta(hours=1), fresh=True)
-        reset_link = url_for('auth.reset_password', token=reset_token, _external=True)
+        reset_link = url_for('user.reset_password', token=reset_token, _external=True)
         email_content = self.create_email(email_type='reset_password', additional_data={'reset_url': reset_link})
         self.send_email(email_content=email_content, receiver_email=user.email)
 
-    def reset_password(self, reset_token, new_password):
+    def reset_password(self, reset_token, data):
         try:
             decoded_token = decode_token(reset_token)
             user_identity = decoded_token['sub']
         except Exception as ex:
             abort(400, description='Invalid or expired token')
+        errors = self.reset_password_dto.validate(data) 
+        if errors:
+            abort(400, description={'ValidationErrors': errors})
+            return
+        new_password = self.reset_password_dto.dump(data)['new_password']
+
         user = self.db.session.query(User).filter_by(username=user_identity).one_or_none()       
         if not user:
             abort(400, description='User not found')
         self.repository.reset_password(user=user, new_password=new_password)
 
-    def logout(self):
-        jti = get_jwt()['jti']
-        self.repository.logout(jti)
-        
+    def change_password(self, data):
+        user = current_user
+        errors = self.reset_password_dto.validate(data) 
+        if errors:
+            abort(400, description={'ValidationErrors': errors})
+            return
+        new_password = self.change_password_dto.dump(data)['new_password']
+        self.repository.change_password(user=user, new_password=new_password)
 
     def enable_2FA(self):
         user = current_user
-        self.repository.enable_2FA(user)        
+        self.repository.enable_2FA(user)
+    
+    def disable_2FA(self):
+        user = current_user
+        self.repository.disable_2FA(user)        
+    
+    def handle_2FA_Send_OTP_Email(self, user):
+        totp = pyotp.TOTP(user.secret_key, interval=500)
+        otp = totp.now()
+        email_content = self.create_email(email_type='2FA_OTP', additional_data={'OTP': otp})
+        self.send_email(receiver_email=user.email, email_content=email_content)
+        return totp
 
+    def handle_2FA_OTP_login(self, username, entered_otp):
+        user = self.repository.get_user_by_username(username)
+        totp = pyotp.TOTP(user.secret_key, interval=500)
+        if not totp.verify(entered_otp):
+            abort(401, 'Invalid token')
+        user = self.repository.get_user_by_username(username)
+        token = self.repository.login_with_otp(user)
+        return token
+    
+    def get_current_user_profile(self):
+        user = current_user
+        user = self.user_profile_schema.dump(user)
+        return user
+    
+    def update_user_data(self, data):
+        user = current_user
+        errors = self.update_dto.validate(data) 
+        if errors:
+            abort(400, description={'ValidationErrors': errors})
+            return
+        updated_user = self.update_dto.load(data)
+        updated_user = self.repository.update_user_data(user, updated_user)
+            
     def send_email(self, receiver_email, email_content):
         configs = f'{Path(__file__).resolve().parent.parent}\config.json'
         with open(configs, 'r') as config_file:
@@ -100,22 +160,6 @@ class UserManagementServices:
             abort(500, description=f'{e}')
         finally:
             server.quit()
-
-    def handle_2FA_Send_OTP_Email(self, user):
-        totp = pyotp.TOTP(user.secret_key, interval=500)
-        otp = totp.now()
-        email_content = self.create_email(email_type='2FA_OTP', additional_data={'OTP': otp})
-        self.send_email(receiver_email=user.email, email_content=email_content)
-        return totp
-
-    def handle_2FA_OTP_login(self, username, entered_otp):
-        user = self.repository.get_user_by_username(username)
-        totp = pyotp.TOTP(user.secret_key, interval=500)
-        if not totp.verify(entered_otp):
-            abort(401, 'Invalid token')
-        user = self.repository.get_user_by_username(username)
-        token = self.repository.login_with_otp(user)
-        return token
         
     def create_email(self, email_type, additional_data=None):
         # To be improved by UI designers

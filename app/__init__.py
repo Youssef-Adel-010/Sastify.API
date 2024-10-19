@@ -33,8 +33,8 @@ def create_app():
     from app.models.blocklist import Blocklist
     
     # Blueprints
-    from app.routes.user_management_route import auth_bp
-    app.register_blueprint(blueprint=auth_bp, url_prefix='/auth')
+    from app.routes.user_routes import user_bp
+    app.register_blueprint(blueprint=user_bp, url_prefix='/api/users')
     
     # Dependency Injection
     from app.dependencies.DI import config

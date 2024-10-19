@@ -42,7 +42,7 @@ class User(db.Model):
     secret_key = Column(String(), nullable=False, default=pyotp.random_base32())
     
     # Relationships
-    roles = relationship('Role', secondary='user_roles', back_populates='users')
+    roles = relationship('Role', secondary='user_roles', back_populates='users', cascade='all, delete')
     tokens = relationship('UserToken', back_populates='user', cascade='all, delete-orphan')
 
     # Representation

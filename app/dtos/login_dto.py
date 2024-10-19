@@ -24,5 +24,3 @@ class LoginDto(Schema):
         pattern =  r"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[_$%@-]).{8,}$"
         if len(value) < 8 or not re.match(pattern, value):
             raise ValidationError('Invalid credentials')
-        
-    

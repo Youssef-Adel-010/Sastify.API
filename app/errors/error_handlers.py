@@ -2,7 +2,6 @@ from app.responses.api_response import ApiResponse
 from flask_injector import inject
 
 def register_error_handlers(app):
-   
     @inject
     @app.errorhandler(404)
     def handle_404_not_found(e, response: ApiResponse):

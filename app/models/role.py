@@ -14,7 +14,7 @@ class Role(db.Model):
     name = Column(String(50), nullable=False, unique=True)
     
     # Relations
-    users = relationship('User', secondary='user_roles', back_populates='roles')
+    users = relationship('User', secondary='user_roles', back_populates='roles', cascade='all, delete')
 
     # Representation
     def __repr__(self):

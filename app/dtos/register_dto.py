@@ -1,6 +1,6 @@
 from app import db
 from app.models.user import User
-from marshmallow import Schema, fields, post_load, validates, ValidationError
+from marshmallow import Schema, fields, post_load, validates, ValidationError, validates_schema
 from werkzeug.security import generate_password_hash
 import re
 
@@ -9,14 +9,25 @@ class RegisterDto(Schema):
     first_name = fields.String(required=True)
     last_name = fields.String(required=True)
     username = fields.String(required=True)
-    email = fields.String(required=True) 
+    email = fields.Email(required=True)
     password = fields.String(required=True)
-
+    confirm_password = fields.String(required=True)
+    
     @post_load
     def make_object(self, data, **kwargs):
         data['password_hash'] = generate_password_hash(data['password'])
         del data['password']
+        del data['confirm_password']
         return User(**data)
+    
+    @validates_schema
+    def validate_schema(self, data, **kwargs):
+        self.validate_passwords(data)
+
+    @staticmethod
+    def validate_passwords(data):
+        if data['password'] != data['confirm_password']:
+            raise ValidationError(field_name='confirm_password', message="Confirm password doesn't match the password field.")
         
     @validates('title')
     def validates_title(self, value):
@@ -57,7 +68,7 @@ class RegisterDto(Schema):
         message = 'Password must contain at least one english letter, one digit, and one special character ($, _, %, @, -).'
         if not re.match(pattern, value):
             raise ValidationError(message)
-        
+
     @validates('email')
     def validates_email(self, value):
         pattern =  r"^[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$"

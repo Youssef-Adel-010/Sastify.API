@@ -1,7 +1,7 @@
 from flask import jsonify
 
 class ApiResponse:
-    def set_values(self, success: bool, status_code: int, message: str='', data: dict=None, error: str = ''):
+    def set_values(self, success: bool=True, status_code: int=200, message: str='sastify', data: dict=None, error: str = 'no errors'):
         self.status_code = status_code
         self.message = message
         self.data = data

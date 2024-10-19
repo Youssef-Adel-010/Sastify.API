@@ -1,7 +1,7 @@
 from flask_jwt_extended import JWTManager
 from flask_injector import inject
 from app.models.blocklist import Blocklist
-from app.repositories.user_management_repository import UserManagementRepository
+from app.repositories.user_repository import UserRepository
 from app.responses.api_response import ApiResponse
 from app import db
 
@@ -9,7 +9,7 @@ def register_jwt_helper(jwt: JWTManager):
     @jwt.user_lookup_loader
     def user_lookup(_jwt_headers, jwt_data):
         identity = jwt_data['sub']
-        user = UserManagementRepository(db).get_user_by_username(identity)
+        user = UserRepository(db).get_user_by_username(identity)
         return user
    
     @jwt.token_in_blocklist_loader
