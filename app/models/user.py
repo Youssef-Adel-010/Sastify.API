@@ -38,6 +38,7 @@ class User(db.Model):
     password_hash = Column(String(), nullable=False)
     registered_on = Column(DateTime, nullable=False, default=func.now())
     is_2FA_enabled = Column(Boolean, nullable=False, default=False)
+    is_activated_account = Column(Boolean, nullable=False, default=False)
     is_deleted_user = Column(Boolean, nullable=False, default=False)
     secret_key = Column(String(), nullable=False, default=pyotp.random_base32())
     

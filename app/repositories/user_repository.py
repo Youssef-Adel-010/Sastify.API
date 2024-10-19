@@ -128,6 +128,15 @@ class UserRepository:
             self.db.session.rollback()
             abort(500, description=ex)
         
+    def activate_account(self, user):
+        user.is_activated_account = True
+        try:
+            self.db.session.commit()
+        except Exception as ex:
+            self.db.session.rollback()
+            abort(500, description=ex)
+        
+        
     def get_user_by_username(self, username):
         user = self.db.session.query(User).filter_by(username=username).one_or_none()
         return user

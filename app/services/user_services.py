@@ -67,6 +67,8 @@ class UserServices:
         
     def forgot_password(self, email):
         user = self.repository.get_user_by_email(email)
+        if not user.is_activated_account:
+            return "not_activated_account"
         if not user:
             abort(404, description='Invalid email')
         reset_token = create_access_token(identity=user.username, expires_delta=timedelta(hours=1), fresh=True)
@@ -93,6 +95,8 @@ class UserServices:
 
     def change_password(self, data):
         user = current_user
+        if not user.is_activated_account:
+            return 'not_activated_account'
         errors = self.reset_password_dto.validate(data) 
         if errors:
             abort(400, description={'ValidationErrors': errors})
@@ -102,10 +106,14 @@ class UserServices:
 
     def enable_2FA(self):
         user = current_user
+        if not user.is_activated_account:
+            return 'not_activated_account'
         self.repository.enable_2FA(user)
     
     def disable_2FA(self):
-        user = current_user
+        user = current_user        
+        if not user.is_activated_account:
+            return 'not_activated_account'
         self.repository.disable_2FA(user)        
     
     def handle_2FA_Send_OTP_Email(self, user):
@@ -125,19 +133,37 @@ class UserServices:
         return token
     
     def get_current_user_profile(self):
-        user = current_user
+        user = current_user        
+        if not user.is_activated_account:
+            return 'not_activated_account'
         user = self.user_profile_schema.dump(user)
         return user
     
     def update_user_data(self, data):
-        user = current_user
+        user = current_user        
+        if not user.is_activated_account:
+            return 'not_activated_account'
         errors = self.update_dto.validate(data) 
         if errors:
             abort(400, description={'ValidationErrors': errors})
             return
         updated_user = self.update_dto.load(data)
         updated_user = self.repository.update_user_data(user, updated_user)
-            
+
+    def send_activation_code(self):
+        user = current_user
+        otp = pyotp.TOTP(user.secret_key, interval=500).now()
+        email_content = self.create_email(email_type='account_activation', additional_data={'OTP': otp})
+        self.send_email(email_content=email_content, receiver_email=current_user.email)
+  
+    def activate_account(self, entered_otp):
+        user = current_user
+        totp = pyotp.TOTP(user.secret_key, interval=500)
+        if not totp.verify(entered_otp):
+            abort(401, 'Invalid token')
+            return
+        self.repository.activate_account(user)
+  
     def send_email(self, receiver_email, email_content):
         configs = f'{Path(__file__).resolve().parent.parent}\config.json'
         with open(configs, 'r') as config_file:
@@ -182,6 +208,17 @@ class UserServices:
             <html>
                 <body>
                 <h1>Here is your OTP<h1>
+                <h3>{additional_data['OTP']}<h3>
+                <h5>Don't share it with anyone<h5>
+                </body>
+            </html>
+            """
+        elif email_type == 'account_activation':
+            subject = 'SASTify account activation code'
+            html = f"""
+            <html>
+                <body>
+                <h1>Here is your account activation code<h1>
                 <h3>{additional_data['OTP']}<h3>
                 <h5>Don't share it with anyone<h5>
                 </body>

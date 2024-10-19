@@ -17,7 +17,7 @@ def register(services: UserServices, response: ApiResponse):
     response.set_values(
         status_code=201,
         success=True,
-        message='The user registered successfully.'
+        message='The user registered successfully, you must activate your account to continue.'
     )
     return response.to_json(), response.status_code
 
@@ -82,10 +82,12 @@ def reset_password(token, services: UserServices, response: ApiResponse):
     return response.to_json(), response.status_code
 
 @inject
-@user_bp.post('/enable_2fa')
+@user_bp.put('/enable-2fa')
 @jwt_required()
 def enable_2fa(services: UserServices, response: ApiResponse):
-    services.enable_2FA()
+    res = services.enable_2FA()
+    if res == 'not_activated_account':
+        return jsonify({'msg': 'Activate your account before taking this action'})
     response.set_values(
         status_code=200,
         success=True,
@@ -94,10 +96,12 @@ def enable_2fa(services: UserServices, response: ApiResponse):
     return response.to_json(), response.status_code
 
 @inject
-@user_bp.post('/disable_2fa')
+@user_bp.put('/disable-2fa')
 @jwt_required()
 def disable_2fa(services: UserServices, response: ApiResponse):
-    services.disable_2FA()
+    res = services.disable_2FA()    
+    if res == 'not_activated_account':
+        return jsonify({'msg': 'Activate your account before taking this action'})
     response.set_values(
         status_code=200,
         success=True,
@@ -106,7 +110,7 @@ def disable_2fa(services: UserServices, response: ApiResponse):
     return response.to_json(), response.status_code
 
 @inject
-@user_bp.post('/otp_login')
+@user_bp.post('/otp-login')
 def otp_login(services: UserServices, response: ApiResponse):
     data = request.json
     required_fields = ['username', 'otp']
@@ -128,6 +132,8 @@ def otp_login(services: UserServices, response: ApiResponse):
 @jwt_required()
 def get_current_user_profile(services: UserServices, response: ApiResponse):
     profile = services.get_current_user_profile()
+    if profile == 'not_activated_account':
+        return jsonify({'msg': 'Activate your account before taking this action'})
     response.set_values(
         status_code=200,
         success=True,
@@ -142,6 +148,8 @@ def get_current_user_profile(services: UserServices, response: ApiResponse):
 def update(services: UserServices, response: ApiResponse):
     data = request.json
     updated_profile = services.update_user_data(data)
+    if updated_profile == 'not_activated_account':
+        return jsonify({'msg': 'Activate your account before taking this action'})
     response.set_values(
         status_code=200,
         success=True,
@@ -158,10 +166,35 @@ def change_password(services: UserServices, response: ApiResponse):
     required_fields = ['new_password', 'confirm_password']
     if any(field not in data for field in required_fields):
         return jsonify({'msg': 'Enter all required values (new_password, confirm_password)'})
-    services.change_password(data=data)
+    res = services.change_password(data=data)
+    if res == 'not_activated_account':
+        return jsonify({'msg': 'Activate your account before taking this action'})
     response.set_values(
         status_code=200,
         success=True,
         message='The password changed successfully.'
+    )
+    return response.to_json(), response.status_code
+
+@inject
+@user_bp.get('/send-activation-code')
+@jwt_required()
+def send_activation_code(services: UserServices, response: ApiResponse):
+    services.send_activation_code()
+    return jsonify({'msg': 'Activation code has been set to your registered email'}), 200
+
+@inject
+@user_bp.put('/activate-account')
+@jwt_required()
+def activate_account(services: UserServices, response: ApiResponse):
+    data = request.json
+    if not 'otp' in data:
+        return jsonify({'msg': 'Enter all required values (otp)'})
+    print(data['otp'])
+    services.activate_account(entered_otp=data.get('otp'))
+    response.set_values(
+        status_code=200,
+        success=True,
+        message='Account activated successfully.'
     )
     return response.to_json(), response.status_code
