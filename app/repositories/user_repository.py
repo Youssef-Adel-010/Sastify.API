@@ -34,6 +34,9 @@ class UserRepository:
         if not user_in_db:
             abort(401, description='Invalid credentials')
             return
+        if user_in_db.is_deleted_user:
+            abort(400, description='This account has been deleted by the admin')
+            return
         if not self.verify_password(user_in_db.password_hash, user.password_hash):
             abort(401, description='Invalid credentials' )
             return

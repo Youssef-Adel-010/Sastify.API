@@ -62,7 +62,6 @@ class UserServices:
         return log
 
     def logout(self):
-        # jti = get_jwt()['jti']
         self.repository.logout()
         
     def forgot_password(self, email):

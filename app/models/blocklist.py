@@ -10,7 +10,7 @@ class Blocklist(db.Model):
     
     # Columns
     id = Column(Integer, primary_key=True)
-    jti = Column(String(), nullable=False)
+    jti = Column(String(), nullable=False, unique=True)
     
     # Representation
     def __repr__(self):

@@ -3,13 +3,12 @@ from flask_jwt_extended import jwt_required
 from injector import inject
 from app.responses.api_response import ApiResponse
 from app.services.user_services import UserServices
-from flasgger import swag_from
 
 user_bp = Blueprint('user', __name__)
 
 @inject
 @user_bp.post('/register')
-def register(services: UserServices, response: ApiResponse):
+def register(services: UserServices, response: ApiResponse):   
     data = request.json
     required_fields = ['username', 'title', 'password', 'confirm_password', 'email', 'first_name', 'last_name']
     if any(field not in data for field in required_fields):
@@ -18,7 +17,7 @@ def register(services: UserServices, response: ApiResponse):
     response.set_values(
         status_code=201,
         success=True,
-        message='The user registered successfully, activate your account or call your sastify admin.'
+        message=f'The user registered successfully, confirm your email to activate your account or call your sastify admin.'
     )
     return response.to_json(), response.status_code
 
@@ -88,7 +87,7 @@ def reset_password(token, services: UserServices, response: ApiResponse):
 def enable_2fa(services: UserServices, response: ApiResponse):
     res = services.enable_2FA()
     if res == 'not_activated_account':
-        return jsonify({'msg': 'Activate your account before taking this action'})
+        return jsonify({'msg': 'This action requires account activation.'})
     response.set_values(
         status_code=200,
         success=True,
@@ -102,7 +101,7 @@ def enable_2fa(services: UserServices, response: ApiResponse):
 def disable_2fa(services: UserServices, response: ApiResponse):
     res = services.disable_2FA()    
     if res == 'not_activated_account':
-        return jsonify({'msg': 'Activate your account before taking this action'})
+        return jsonify({'msg': 'This action requires account activation.'})
     response.set_values(
         status_code=200,
         success=True,
@@ -134,7 +133,7 @@ def otp_login(services: UserServices, response: ApiResponse):
 def get_current_user_profile(services: UserServices, response: ApiResponse):
     profile = services.get_current_user_profile()
     if profile == 'not_activated_account':
-        return jsonify({'msg': 'Activate your account before taking this action'})
+        return jsonify({'msg': 'This action requires account activation.'})
     response.set_values(
         status_code=200,
         success=True,
@@ -150,7 +149,7 @@ def update(services: UserServices, response: ApiResponse):
     data = request.json
     updated_profile = services.update_user_data(data)
     if updated_profile == 'not_activated_account':
-        return jsonify({'msg': 'Activate your account before taking this action'})
+        return jsonify({'msg': 'This action requires account activation.'})
     response.set_values(
         status_code=200,
         success=True,
@@ -169,7 +168,7 @@ def change_password(services: UserServices, response: ApiResponse):
         return jsonify({'msg': 'Enter all required values (old_password, new_password, confirm_password)'})
     res = services.change_password(data=data)
     if res == 'not_activated_account':
-        return jsonify({'msg': 'Activate your account before taking this action'})
+        return jsonify({'msg': 'This action requires account activation.'})
     response.set_values(
         status_code=200,
         success=True,
