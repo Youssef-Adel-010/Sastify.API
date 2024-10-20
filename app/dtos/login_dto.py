@@ -10,6 +10,8 @@ class LoginDto(Schema):
 
     @post_load
     def make_object(self, data, **kwargs):
+        data['username'] = str(data['username']).strip()
+        data['password'] = str(data['password']).strip()
         data['password_hash'] = data['password']
         del data['password']
         return User(**data)

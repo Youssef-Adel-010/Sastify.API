@@ -5,10 +5,14 @@ from flask_injector import FlaskInjector
 from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flasgger import Swagger
+from flask_talisman import Talisman
 
 db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
+swagger = Swagger()
+talisman = Talisman()
 
 def create_app():
     app = Flask(__name__)
@@ -22,7 +26,7 @@ def create_app():
     register_jwt_helper(jwt)
 
     # Configurations
-    config = f'{Path(__file__).resolve().parent}\config.json'
+    config = f'{Path(__file__).resolve().parent}/config.json'
     app.config.from_file(config, load=json.load)
     
     # Models
@@ -35,6 +39,8 @@ def create_app():
     # Blueprints
     from app.routes.user_routes import user_bp
     app.register_blueprint(blueprint=user_bp, url_prefix='/api/users')
+    from app.routes.admin_routes import admin_bp
+    app.register_blueprint(blueprint=admin_bp, url_prefix='/api/admin')
     
     # Dependency Injection
     from app.dependencies.DI import config
@@ -44,5 +50,6 @@ def create_app():
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    talisman.init_app(app)
     
     return app

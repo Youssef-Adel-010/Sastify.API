@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from injector import inject
 from app.responses.api_response import ApiResponse
 from app.services.user_services import UserServices
+from flasgger import swag_from
 
 user_bp = Blueprint('user', __name__)
 
@@ -17,7 +18,7 @@ def register(services: UserServices, response: ApiResponse):
     response.set_values(
         status_code=201,
         success=True,
-        message='The user registered successfully, you must activate your account to continue.'
+        message='The user registered successfully, activate your account or call your sastify admin.'
     )
     return response.to_json(), response.status_code
 
@@ -125,7 +126,7 @@ def otp_login(services: UserServices, response: ApiResponse):
         message='The account logged in successfully.',
         data={'access_token': token}
     )
-    return response.to_json(), response.status_code
+    return response.to_json(), response.status_codelo
 
 @inject
 @user_bp.get('/profile')
@@ -163,9 +164,9 @@ def update(services: UserServices, response: ApiResponse):
 @jwt_required()
 def change_password(services: UserServices, response: ApiResponse):
     data = request.json
-    required_fields = ['new_password', 'confirm_password']
+    required_fields = ['old_password', 'new_password', 'confirm_password']
     if any(field not in data for field in required_fields):
-        return jsonify({'msg': 'Enter all required values (new_password, confirm_password)'})
+        return jsonify({'msg': 'Enter all required values (old_password, new_password, confirm_password)'})
     res = services.change_password(data=data)
     if res == 'not_activated_account':
         return jsonify({'msg': 'Activate your account before taking this action'})

@@ -1,5 +1,6 @@
+from datetime import timedelta
 from flask import abort
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, current_user, decode_token, get_jwt
 from flask_sqlalchemy import SQLAlchemy
 from injector import inject
 import pyotp
@@ -38,47 +39,42 @@ class UserRepository:
             return
         if user_in_db.is_2FA_enabled:
             return user_in_db
-        existing_access_token = self.db.session.query(UserToken).filter_by(user_id=user_in_db.id).one_or_none()
+        token = self.create_user_access_token(user_in_db)
+        return token.value
+    
+    def create_user_access_token(self, user: User):
+        existing_access_token = self.db.session.query(UserToken).filter_by(user_id=user.id).one_or_none()
         if existing_access_token:
+            jti = decode_token(existing_access_token.value).get('jti')
+            blocked_jti = Blocklist(jti=jti)
+            self.db.session.add(blocked_jti)
             self.db.session.delete(existing_access_token)
         token = UserToken(
             user_id=user.id,
             name='access_token',
-            value=create_access_token(identity=user.username)
+            value=create_access_token(identity=user.username, expires_delta=timedelta(weeks=1000))
         )
-        user_in_db.tokens.append(token)
-        try:
-            self.db.session.commit()
-        except Exception as ex:
-            self.db.session.rollback()
-            abort(500, description=ex)
-        return token.value
-        
-    def logout(self, jti):
-        blocked_jti = Blocklist(jti=jti)
-        self.db.session.add(blocked_jti)
-        try:
-            self.db.session.commit()
-        except Exception as ex:
-            self.db.session.rollback()
-            abort(500, description=ex)
-        
-    def login_with_otp(self, user: User):
-        existing_access_token = self.db.session.query(UserToken).filter_by(user_id=user.id).one_or_none()
-        if existing_access_token:
-            self.db.session.delete(existing_access_token)
-        token = UserToken(
-                user_id=user.id,
-                name='access_token',
-                value=create_access_token(identity=user.username)
-            )
         user.tokens.append(token)
         try:
             self.db.session.commit()
         except Exception as ex:
             self.db.session.rollback()
             abort(500, description=ex)
-        return token.value
+        return token
+        
+    def logout(self):
+        existing_access_token = self.db.session.query(UserToken).filter_by(user_id=current_user.id).one_or_none()
+        if not existing_access_token:
+            abort(404, 'The user has no existing token')
+        jti = decode_token(existing_access_token.value).get('jti')
+        blocked_jti = Blocklist(jti=jti)
+        self.db.session.add(blocked_jti)
+        self.db.session.delete(existing_access_token)
+        try:
+            self.db.session.commit()
+        except Exception as ex:
+            self.db.session.rollback()
+            abort(500, description=ex)
 
     def update_user_data(self, user: User, updated_user: User):
         if updated_user.title is not None and updated_user.title != user.title:
@@ -87,8 +83,6 @@ class UserRepository:
             user.first_name = updated_user.first_name
         if updated_user.last_name is not None and updated_user.last_name != user.last_name:
             user.last_name = updated_user.last_name
-        if updated_user.email is not None and updated_user.email != user.email:
-            user.email = updated_user.email
         try:
             self.db.session.commit()
         except Exception as ex:

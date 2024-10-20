@@ -9,10 +9,12 @@ class UpdateDto(Schema):
     title = fields.String(required=False)
     first_name = fields.String(required=False)
     last_name = fields.String(required=False)
-    email = fields.String(required=False) 
 
     @post_load
     def make_object(self, data, **kwargs):
+        data['title'] = str(data['title']).strip().capitalize()
+        data['first_name'] = str(data['first_name']).strip().capitalize()
+        data['last_name'] = str(data['last_name']).strip().capitalize()
         return User(**data)
     
     @validates('title')

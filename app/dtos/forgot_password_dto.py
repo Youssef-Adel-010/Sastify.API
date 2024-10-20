@@ -9,6 +9,7 @@ class ForgotPasswordDto(Schema):
 
     @post_load
     def make_object(self, data, **kwargs):
+        data['email'] = str(data['email']).strip()
         return data['email']
 
     @validates('email')

@@ -15,6 +15,12 @@ class RegisterDto(Schema):
     
     @post_load
     def make_object(self, data, **kwargs):
+        data['title'] = str(data['title']).strip().capitalize()
+        data['first_name'] = str(data['first_name']).strip().capitalize()
+        data['last_name'] = str(data['last_name']).strip().capitalize()
+        data['username'] = str(data['username']).strip()
+        data['email'] = str(data['email']).strip()
+        data['password'] = str(data['password']).strip()
         data['password_hash'] = generate_password_hash(data['password'])
         del data['password']
         del data['confirm_password']

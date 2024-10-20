@@ -1,26 +1,36 @@
+from flask_jwt_extended import current_user
 from marshmallow import Schema, fields, post_load, validates, ValidationError, validates_schema
 import re
 from app import db
 from app.models.user import User
-
+from werkzeug.security import check_password_hash
 
 class ChangePasswordDto(Schema):
+    old_password = fields.String(required=True)
     new_password = fields.String(required=True)
     confirm_password = fields.String(required=True)
 
     @post_load
     def make_object(self, data, **kwargs):
-        return {'new_password': data['new_password'], 'confirm_password': data['confirm_password']}
+        data['new_password'] = str(data['new_password']).strip()
+        return {'new_password': data['new_password']}
 
     @validates('new_password')
     def validates_password(self, value):
         if len(value) < 8:
-            raise ValidationError('Password must be at least 3 characters.')
+            raise ValidationError('Password must be at least 8 characters.')
         pattern =  r"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[_$%@-]).{8,}$"
         message = 'Password must contain at least one english letter, one digit, and one special character ($, _, %, @, -).'
         if not re.match(pattern, value):
             raise ValidationError(message)
+    
+    @validates('old_password')
+    def validate_old_password(self, value):
+        current_password_hash = current_user.password_hash
+        if not check_password_hash(current_password_hash, value):
+            raise ValidationError('The old password is incorrect')
         
+    
     @staticmethod
     def validate_confirm_passwords(data):
         if data['new_password'] != data['confirm_password']:

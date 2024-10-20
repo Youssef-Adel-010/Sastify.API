@@ -7,4 +7,12 @@ class UserProfileSchema(SQLAlchemyAutoSchema):
         model = User
         include_relations = True
         load_instance = True
-        exclude = ('id', 'is_deleted_user', 'password_hash', 'secret_key')
+        exclude = (
+            'id', 
+            'is_deleted_user',
+            'password_hash',
+            'secret_key',
+            'is_activated_account',
+            'registered_on',
+            'is_2FA_enabled'
+        )

@@ -10,7 +10,8 @@ class ResetPasswordDto(Schema):
 
     @post_load
     def make_object(self, data, **kwargs):
-        return {'new_password': data['new_password'], 'confirm_password': data['confirm_password']}
+        data['new_password'] = str(data['new_password']).strip()
+        return {'new_password': data['new_password']}
 
     @validates('new_password')
     def validates_password(self, value):

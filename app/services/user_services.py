@@ -62,8 +62,8 @@ class UserServices:
         return log
 
     def logout(self):
-        jti = get_jwt()['jti']
-        self.repository.logout(jti)
+        # jti = get_jwt()['jti']
+        self.repository.logout()
         
     def forgot_password(self, email):
         user = self.repository.get_user_by_email(email)
@@ -97,7 +97,7 @@ class UserServices:
         user = current_user
         if not user.is_activated_account:
             return 'not_activated_account'
-        errors = self.reset_password_dto.validate(data) 
+        errors = self.change_password_dto.validate(data) 
         if errors:
             abort(400, description={'ValidationErrors': errors})
             return
@@ -128,8 +128,7 @@ class UserServices:
         totp = pyotp.TOTP(user.secret_key, interval=500)
         if not totp.verify(entered_otp):
             abort(401, 'Invalid token')
-        user = self.repository.get_user_by_username(username)
-        token = self.repository.login_with_otp(user)
+        token = self.repository.create_user_access_token(user)
         return token
     
     def get_current_user_profile(self):
@@ -188,7 +187,9 @@ class UserServices:
             server.quit()
         
     def create_email(self, email_type, additional_data=None):
-        # To be improved by UI designers
+        ####################!###################
+        # TODO: To be improved by UI designers #
+        ####################!###################
         html = ''
         subject = ''
         if email_type == 'reset_password':
